@@ -153,6 +153,7 @@ class DetLocalVisualizer(Visualizer):
                     pos,
                     colors=text_colors[i],
                     font_sizes=int(13 * scales[i]),
+                    font_families='TakaoGothic',
                     bboxes=[{
                         'facecolor': 'black',
                         'alpha': 0.8,
@@ -168,7 +169,7 @@ class DetLocalVisualizer(Visualizer):
             elif isinstance(masks, (PolygonMasks, BitmapMasks)):
                 masks = masks.to_ndarray()
 
-            masks = masks.astype(bool)
+            masks = masks.astype(np.bool)
 
             max_label = int(max(labels) if len(labels) > 0 else 0)
             mask_color = palette if self.mask_color is None \
@@ -215,6 +216,7 @@ class DetLocalVisualizer(Visualizer):
                         colors=text_colors[i],
                         font_sizes=int(13 * scales[i]),
                         horizontal_alignments='center',
+                        font_families='TakaoGothic',
                         bboxes=[{
                             'facecolor': 'black',
                             'alpha': 0.8,
@@ -285,6 +287,7 @@ class DetLocalVisualizer(Visualizer):
                 pos,
                 colors=text_colors[i],
                 font_sizes=int(13 * scales[i]),
+                font_families='TakaoGothic',
                 bboxes=[{
                     'facecolor': 'black',
                     'alpha': 0.8,

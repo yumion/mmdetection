@@ -1,5 +1,5 @@
-ARG PYTORCH="1.9.0"
-ARG CUDA="11.1"
+ARG PYTORCH="1.10.0"
+ARG CUDA="11.3"
 ARG CUDNN="8"
 
 FROM pytorch/pytorch:${PYTORCH}-cuda${CUDA}-cudnn${CUDNN}-devel
@@ -7,7 +7,8 @@ FROM pytorch/pytorch:${PYTORCH}-cuda${CUDA}-cudnn${CUDNN}-devel
 ENV TORCH_CUDA_ARCH_LIST="6.0 6.1 7.0 7.5 8.0 8.6+PTX" \
     TORCH_NVCC_FLAGS="-Xfatbin -compress-all" \
     CMAKE_PREFIX_PATH="$(dirname $(which conda))/../" \
-    FORCE_CUDA="1"
+    FORCE_CUDA="1" \
+    TZ=Asia/Tokyo
 
 # Avoid Public GPG key error
 # https://github.com/NVIDIA/nvidia-docker/issues/1631
@@ -27,14 +28,18 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# add japanese font
+COPY /usr/share/fonts/truetype/takao-gothic /usr/share/fonts/truetype/
+COPY /usr/share/fonts/truetype/fonts-japanese-gothic.ttf /usr/share/fonts/truetype/
+
 # Install MMEngine and MMCV
 RUN pip install openmim && \
-    mim install "mmengine==0.3.0" "mmcv>=2.0.0rc1"
+    mim install "mmengine==0.3.0" "mmcv==2.0.0rc3"
 
-# Install MMDetection
-RUN conda clean --all \
-    && git clone https://github.com/open-mmlab/mmdetection.git -b 3.x /mmdetection \
-    && cd /mmdetection \
-    && pip install --no-cache-dir -e .
+# # Install MMDetection
+# RUN conda clean --all \
+#     && git clone https://github.com/open-mmlab/mmdetection.git -b 3.x /mmdetection \
+#     && cd /mmdetection \
+#     && pip install --no-cache-dir -e .
 
-WORKDIR /mmdetection
+# WORKDIR /mmdetection

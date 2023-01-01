@@ -11,6 +11,9 @@ from mmdet.engine.hooks.utils import trigger_visualization_hook
 from mmdet.registry import RUNNERS
 from mmdet.utils import register_all_modules
 
+import matplotlib.pyplot as plt
+plt.rcParams['font.family'] = 'TakaoGothic'
+
 
 # TODO: support fuse_conv_bn and format_only
 def parse_args():
