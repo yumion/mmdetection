@@ -94,6 +94,8 @@ class CocoMetric(BaseMetric):
         if iou_thrs is None:
             iou_thrs = np.linspace(
                 .5, 0.95, int(np.round((0.95 - .5) / .05)) + 1, endpoint=True)
+        elif type(iou_thrs) == float:
+            iou_thrs = [iou_thrs]
         self.iou_thrs = iou_thrs
         self.metric_items = metric_items
         self.format_only = format_only

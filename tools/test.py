@@ -100,7 +100,7 @@ def main():
         assert args.out.endswith(('.pkl', '.pickle')), \
             'The dump file must be a pkl file.'
         runner.test_evaluator.metrics.append(
-            DumpResults(out_file_path=args.out))
+            DumpResults(out_file_path=osp.join(runner.work_dir, runner.timestamp, args.out)))
 
     # start testing
     runner.test()

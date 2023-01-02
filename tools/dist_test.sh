@@ -3,12 +3,13 @@
 CONFIG=$1
 CHECKPOINT=$2
 GPUS=$3
-SHOW_DIR="$(dirname $2)"
 NNODES=${NNODES:-1}
 NODE_RANK=${NODE_RANK:-0}
 PORT=${PORT:-29500}
 MASTER_ADDR=${MASTER_ADDR:-"127.0.0.1"}
 
+SHOW_DIR=prediction
+OUT_FILE=out.pkl
 
 PYTHONPATH="$(dirname $0)/..":$PYTHONPATH \
 python -m torch.distributed.launch \
@@ -22,4 +23,6 @@ python -m torch.distributed.launch \
     $CHECKPOINT \
     --launcher pytorch \
     --show-dir $SHOW_DIR \
+    --out $OUT_FILE \
+    --wait-time 0 \
     ${@:4}
