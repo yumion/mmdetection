@@ -8,13 +8,9 @@ ENV TORCH_CUDA_ARCH_LIST="6.0 6.1 7.0 7.5 8.0 8.6+PTX" \
     TORCH_NVCC_FLAGS="-Xfatbin -compress-all" \
     CMAKE_PREFIX_PATH="$(dirname $(which conda))/../" \
     FORCE_CUDA="1" \
-<<<<<<< HEAD
     TZ=Asia/Tokyo \
     CUDA_DEVICE_ORDER="PCI_BUS_ID" \
     LANG="C.UTF-8"
-=======
-    TZ=Asia/Tokyo
->>>>>>> yamada first commit
 
 # Avoid Public GPG key error
 # https://github.com/NVIDIA/nvidia-docker/issues/1631
