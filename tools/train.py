@@ -55,6 +55,11 @@ def parse_args():
     # will pass the `--local-rank` parameter to `tools/train.py` instead
     # of `--local_rank`.
     parser.add_argument('--local_rank', '--local-rank', type=int, default=0)
+    parser.add_argument(
+        '--mmyolo',
+        action='store_true',
+        default=False,
+        help='if using mmyolo model, set --mmyolo')
     args = parser.parse_args()
     if 'LOCAL_RANK' not in os.environ:
         os.environ['LOCAL_RANK'] = str(args.local_rank)
@@ -76,6 +81,15 @@ def main():
     # Reduce the number of repeated compilations and improve
     # training speed.
     setup_cache_size_limit_of_dynamo()
+
+    # register all modules in mmdet into the registries
+    # do not init the default scope here because it will be init in the runner
+    if args.mmyolo:
+        from mmyolo.utils import register_all_modules
+        print('****** MMYOLO *******')
+    else:
+        from mmdet.utils import register_all_modules
+    register_all_modules(init_default_scope=False)
 
     # load config
     cfg = Config.fromfile(args.config)
