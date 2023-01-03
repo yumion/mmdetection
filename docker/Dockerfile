@@ -8,7 +8,9 @@ ENV TORCH_CUDA_ARCH_LIST="6.0 6.1 7.0 7.5 8.0 8.6+PTX" \
     TORCH_NVCC_FLAGS="-Xfatbin -compress-all" \
     CMAKE_PREFIX_PATH="$(dirname $(which conda))/../" \
     FORCE_CUDA="1" \
-    TZ=Asia/Tokyo
+    TZ=Asia/Tokyo \
+    CUDA_DEVICE_ORDER="PCI_BUS_ID" \
+    LANG="C.UTF-8"
 
 # Avoid Public GPG key error
 # https://github.com/NVIDIA/nvidia-docker/issues/1631
@@ -19,8 +21,8 @@ RUN rm /etc/apt/sources.list.d/cuda.list \
     && apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64/7fa2af80.pub
 
 # (Optional, use Mirror to speed up downloads)
-# RUN sed -i 's/http:\/\/archive.ubuntu.com\/ubuntu\//http:\/\/mirrors.aliyun.com\/ubuntu\//g' /etc/apt/sources.list && \
-#    pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+RUN sed -i 's/http:\/\/archive.ubuntu.com\/ubuntu\//http:\/\/mirrors.aliyun.com\/ubuntu\//g' /etc/apt/sources.list && \
+   pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
 # Install the required packages
 RUN apt-get update \
@@ -29,12 +31,11 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # add japanese font
-COPY /usr/share/fonts/truetype/takao-gothic /usr/share/fonts/truetype/
-COPY /usr/share/fonts/truetype/fonts-japanese-gothic.ttf /usr/share/fonts/truetype/
+COPY ./takao-gothic /usr/share/fonts/truetype/
 
-# Install MMEngine and MMCV
+# Install MMEngine, MMCV and MMYOLO
 RUN pip install openmim && \
-    mim install "mmengine==0.3.0" "mmcv==2.0.0rc3"
+    mim install "mmengine==0.4.0" "mmcv==2.0.0rc3" "mmyolo"
 
 # # Install MMDetection
 # RUN conda clean --all \
