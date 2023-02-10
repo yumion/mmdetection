@@ -4,10 +4,10 @@ import os
 import os.path as osp
 
 from mmengine.config import Config, DictAction
-from mmengine.evaluator import DumpResults
 from mmengine.runner import Runner
 
 from mmdet.engine.hooks.utils import trigger_visualization_hook
+from mmdet.evaluation import DumpDetResults
 from mmdet.registry import RUNNERS
 
 import matplotlib.pyplot as plt
