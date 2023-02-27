@@ -35,7 +35,7 @@ COPY ./takao-gothic /usr/share/fonts/truetype/
 
 # Install MMEngine, MMCV and MMYOLO
 RUN pip install openmim && \
-    mim install "mmengine==0.4.0" "mmcv==2.0.0rc3" "mmyolo"
+    mim install "mmengine>=0.6.0" "mmcv>=2.0.0rc4" "mmyolo"
 
 # # Install MMDetection
 # RUN conda clean --all \
