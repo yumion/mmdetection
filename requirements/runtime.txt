@@ -2,6 +2,7 @@ matplotlib
 numpy
 pycocotools
 scipy
+shapely
 six
 terminaltables
 imageio-ffmpeg
