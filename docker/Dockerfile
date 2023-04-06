@@ -35,11 +35,11 @@ COPY ./takao-gothic /usr/share/fonts/truetype/
 
 # Install MMEngine, MMCV and MMYOLO
 RUN pip install openmim && \
-    mim install "mmengine>=0.6.0" "mmcv>=2.0.0rc4" "mmyolo"
+    mim install "mmengine>=0.7.1" "mmcv>=2.0.0rc4" "mmyolo"
 
 # # Install MMDetection
 # RUN conda clean --all \
-#     && git clone https://github.com/open-mmlab/mmdetection.git -b 3.x /mmdetection \
+#     && git clone https://github.com/open-mmlab/mmdetection.git /mmdetection \
 #     && cd /mmdetection \
 #     && pip install --no-cache-dir -e .
 
