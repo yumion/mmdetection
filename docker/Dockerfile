@@ -1,6 +1,8 @@
-ARG PYTORCH="1.9.0"
-ARG CUDA="11.1"
+ARG PYTORCH="1.11.0"
+ARG CUDA="11.3"
 ARG CUDNN="8"
+ARG MMCV="2.0.1"
+ARG MMENGINE="0.8.1"
 
 FROM pytorch/pytorch:${PYTORCH}-cuda${CUDA}-cudnn${CUDNN}-devel
 
@@ -28,13 +30,19 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Install MMEngine and MMCV
-RUN pip install openmim && \
-    mim install "mmengine>=0.7.1" "mmcv>=2.0.0rc4"
+ARG PYTORCH
+ARG CUDA
+ARG MMCV
+ARG MMENGINE
+RUN ["/bin/bash", "-c", "pip install openmim"]
+RUN ["/bin/bash", "-c", "mim install mmengine==${MMENGINE}"]
+RUN ["/bin/bash", "-c", "mim install mmcv==${MMCV}"]
 
 # Install MMDetection
 RUN conda clean --all \
-    && git clone https://github.com/open-mmlab/mmdetection.git /mmdetection \
+    && git clone https://github.com/yumion/mmdetection.git /mmdetection \
     && cd /mmdetection \
+    && pip install -r requirements/albu.txt \
     && pip install --no-cache-dir -e .
 
 WORKDIR /mmdetection
