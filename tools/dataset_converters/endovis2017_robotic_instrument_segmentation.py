@@ -80,14 +80,18 @@ def create_coco_format(parent_dir, child_dir_ptn, seg_dir_name, save_file, categ
 
 
 def mask2bbox(mask):
+    # 2d array -> [xmin, ymin, width, height]
     contours = mask2contours(mask)
     all_contours = np.concatenate(contours)
     xmin, ymin = all_contours.min(axis=0)
     xmax, ymax = all_contours.max(axis=0)
-    return list(map(int, [xmin, ymin, xmax, ymax]))
+    w = xmax - xmin
+    h = ymax - ymin
+    return list(map(int, [xmin, ymin, w, h]))
 
 
 def mask2contours(mask):
+    # 2d array -> [contour([x1, y1], [x2, y2], [x3, y3], [x4, y4],...)]
     _, bw = cv2.threshold(mask, 0, 255, cv2.THRESH_BINARY)
     contours, hierarchy = cv2.findContours(bw, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     return [contour[:, 0] for contour in contours]
