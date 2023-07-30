@@ -30,6 +30,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Install MMEngine and MMCV
+RUN pip install --upgrade pip
 ARG PYTORCH
 ARG CUDA
 ARG MMCV
