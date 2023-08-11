@@ -101,7 +101,7 @@ def mask2contours(mask):
     # 2d array -> [contour([x1, y1], [x2, y2], [x3, y3], [x4, y4],...)]
     _, bw = cv2.threshold(mask, 0, 255, cv2.THRESH_BINARY)
     contours, hierarchy = cv2.findContours(bw, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-    return [contour[:, 0] for contour in contours]
+    return [contour[:, 0] for contour in contours if len(contour) > 1]  # 1点の輪郭を除外
 
 
 def sum_area(mask):
