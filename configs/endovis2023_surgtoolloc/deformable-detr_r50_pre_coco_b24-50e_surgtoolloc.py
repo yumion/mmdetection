@@ -186,7 +186,13 @@ param_scheduler = [
 auto_scale_lr = dict(base_batch_size=24)
 
 default_hooks = dict(
-    checkpoint=dict(type="CheckpointHook", by_epoch=True, interval=1, max_keep_ckpts=1),
+    checkpoint=dict(
+        type="CheckpointHook",
+        by_epoch=True,
+        interval=1,
+        max_keep_ckpts=1,
+        save_best="coco/bbox_mAP_50",
+    ),
     visualization=dict(type="DetVisualizationHook", draw=True, interval=50),
 )
 
@@ -198,8 +204,8 @@ model = dict(
     as_two_stage=False,
     data_preprocessor=dict(
         type="DetDataPreprocessor",
-        mean=[123.675, 116.28, 103.53],
-        std=[58.395, 57.12, 57.375],
+        mean=[0.32858519781689005 * 255, 0.15265839395622285 * 255, 0.14655234887549404 * 255],
+        std=[0.07691241763785549 * 255, 0.053818967599625046 * 255, 0.056615884572508365 * 255],
         bgr_to_rgb=True,
         pad_size_divisor=1,
     ),
