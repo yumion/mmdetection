@@ -59,6 +59,7 @@ def main():
     model = DetInferencer(
         weights=str(args.checkpoint),
         device=f"cuda:{args.device}" if args.device >= 0 else "cpu",
+        show_progress=False,
     )
 
     with tqdm(sorted(glob(f"{args.target_dir}/*.png", recursive=True))) as pbar:
