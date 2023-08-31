@@ -68,8 +68,10 @@ def main():
             img_path = Path(img_path)
 
             # inputの画像のフォルダ構成を保ったまま保存する
-            parent_dir = Path(str(img_path.parent).replace(args.target_dir.split("*")[0], ""))
-            pbar.set_description(f"{parent_dir / img_path.name}")
+            parent_dir = img_path.parent.name
+            if "*" in args.target_dir:
+                parent_dir = str(img_path.parent).replace(args.target_dir.split("*")[0], "")
+            pbar.set_description(f"{parent_dir}/{img_path.name}")
 
             # --outの場合、APIで結果をjsonで保存するためパスを指定する
             if args.out is not None:
@@ -90,7 +92,7 @@ def main():
             )
 
             if args.show_dir is not None:
-                show_dir = args.show_dir / parent_dir
+                show_dir = args.show_dir / parent_dir / "vis"
                 show_dir.mkdir(parents=True, exist_ok=True)
                 blend = result["visualization"][0]
                 cv2.imwrite(str(show_dir / img_path.name), blend[..., ::-1])
