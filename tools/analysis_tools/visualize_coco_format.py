@@ -130,7 +130,7 @@ class CocoVisualizer:
                 bbox=dict(facecolor="white", edgecolor="none", pad=0),
             )
 
-        output_path = self.output_directory / f"img{img_id}_{img_info['file_name']}.png"
+        output_path = self.output_directory / f"img{img_id:06d}_{img_info['file_name']}"
         plt.savefig(output_path, dpi=100, bbox_inches="tight", pad_inches=0)
         plt.close()
 
