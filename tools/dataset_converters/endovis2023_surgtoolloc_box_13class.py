@@ -15,22 +15,40 @@ def main():
     annotation_csv = Path("/data2/src/atsushi/SurgToolLoc/result/cls_labels/cls_labels_modify.csv")
     child_dir_ptn = "*_clip_*"
     seg_dir_name = "mask"
-    save_file = "coco_13classes.json"
+    save_file = "coco_box_13classes.json"
 
     # semantic mask to instance id
     cmap = {
-        1: 1,
-        2: 1,
-        3: 1,
-        4: 2,
-        5: 2,
-        6: 2,
-        7: 3,
-        8: 3,
-        9: 3,
-        10: 4,
-        11: 4,
-        12: 4,
+        1: 1,  # clasper
+        2: 1,  # wrist
+        3: 1,  # shaft
+        4: 2,  # clasper
+        5: 2,  # wrist
+        6: 2,  # shaft
+        7: 3,  # clasper
+        8: 3,  # wrist
+        9: 3,  # shaft
+        10: 4,  # clasper
+        11: 4,  # wrist
+        12: 4,  # shaft
+    }
+
+    clasper_or_wrist = {
+        "bipolar_forceps": [2, 5, 8, 11],  # wrist
+        "cadiere_forceps": [2, 5, 8, 11],  # wrist
+        "clip_applier": [2, 5, 8, 11],  # wrist
+        "force_bipolar": [2, 5, 8, 11],  # wrist
+        "grasping_retractor": [1, 4, 7, 10],  # clasper
+        "monopolar_curved_scissors": [1, 4, 7, 10],  # clasper
+        "needle_driver": [2, 5, 8, 11],  # wrist
+        "permanent_cautery_hook_spatula": [2, 5, 8, 11],  # wrist
+        "prograsp_forceps": [2, 5, 8, 11],  # wrist
+        "stapler": [1, 4, 7, 10, 2, 5, 8, 11],  # clasper and wrist
+        "suction_irrigator": [1, 4, 7, 10],  # clasper
+        "tip_up_fenestrated_grasper": [1, 4, 7, 10, 2, 5, 8, 11],  # clasper and wrist
+        "vessel_sealer": [2, 5, 8, 11],  # wrist
+        "other": [-1],  # ignore
+        "bipolar_dissector": [-1],  # ignore
     }
 
     categories = [
@@ -62,12 +80,12 @@ def main():
             ["filename", "instance_id", "bbox", "label"]
         )
         coco_dataset = create_coco_format(
-            video_dir / seg_dir_name, cmap, categories, df_cls_annotations
+            video_dir / seg_dir_name, cmap, categories, df_cls_annotations, clasper_or_wrist
         )
         save_annotation(coco_dataset, video_dir / save_file)
 
 
-def create_coco_format(mask_parent_dir, cmap, categories, df_cls_annotations):
+def create_coco_format(mask_parent_dir, cmap, categories, df_cls_annotations, clasper_or_wrist):
     coco_dataset = {
         "images": [],
         "annotations": [],
@@ -79,11 +97,11 @@ def create_coco_format(mask_parent_dir, cmap, categories, df_cls_annotations):
     with tqdm(enumerate(mask_parent_dir.glob("*.png"))) as pbar:
         for image_id, label_file in pbar:
             # cv2.imreadで開くとpaletteのRGB値で開かれるのでPILで開く
-            mask = np.array(Image.open(label_file).convert("P"))
+            panoptic_mask = np.array(Image.open(label_file).convert("P"))
 
             # image info
             pbar.set_postfix(dict(image=label_file.name))
-            height, width = mask.shape
+            height, width = panoptic_mask.shape
             image_info = {
                 "id": image_id,
                 "file_name": label_file.name,  # maskとframeは同じファイル名
@@ -93,18 +111,17 @@ def create_coco_format(mask_parent_dir, cmap, categories, df_cls_annotations):
             coco_dataset["images"].append(image_info)
             # annotation info
             pbar.set_description(mask_parent_dir.parent.name)
-            mask = index_remap(mask, cmap)
-            instance_uniques = np.unique(mask)[1:]  # ignore background
+            instance_masks = index_remap(panoptic_mask, cmap)
+            instance_uniques = np.unique(instance_masks)[1:]  # ignore background
             # label of instances
             anno = df_cls_annotations.filter(pl.col("filename") == label_file.name).to_dicts()
             if len(anno) == 0:
                 print("No labels")
                 continue
-            # maskからinstanceを取り出す
+            # instance_masksからinstanceを取り出す
             for _id in instance_uniques:
-                instance_mask = get_target_mask(mask, _id)
+                instance_mask = get_target_mask(instance_masks, _id)
                 bbox = mask2bbox(instance_mask)
-                area = calc_mask_area(instance_mask)
 
                 # determine which label is targeted
                 label = rename_label(
@@ -119,15 +136,21 @@ def create_coco_format(mask_parent_dir, cmap, categories, df_cls_annotations):
                 )
                 label_id = get_label_id(categories, label)
 
+                # 先端か手首にbboxを絞る
+                target_indexes = clasper_or_wrist[label]
+                target_mask = (
+                    instance_mask.astype(bool) & np.isin(panoptic_mask, target_indexes)
+                ).astype(np.uint8)
+                area = calc_mask_area(target_mask)
                 # 術具が写っていない場合真っ黒
                 if area > 0:
                     annotation_info = {
                         "id": instance_id,
                         "image_id": image_id,
                         "category_id": label_id,
-                        "bbox": mask2bbox(instance_mask),
+                        "bbox": mask2bbox(target_mask),
                         "segmentation": [
-                            contour.flatten().tolist() for contour in mask2contours(instance_mask)
+                            contour.flatten().tolist() for contour in mask2contours(target_mask)
                         ],
                         "area": area,
                         "iscrowd": 0,
@@ -211,7 +234,7 @@ def get_label_id(categories, label_name):
     for category in categories:
         if category["name"] == label_name:
             return category["id"]
-    return
+    assert f"there is no category to match in {label_name}"
 
 
 def save_annotation(anno, save_path):
