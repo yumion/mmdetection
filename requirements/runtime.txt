@@ -6,3 +6,4 @@ shapely
 six
 terminaltables
 imageio-ffmpeg
+tqdm
