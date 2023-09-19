@@ -3,19 +3,21 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-import polars as pl
+from lxml import etree
 from PIL import Image
 from tqdm import tqdm
 
 
 def main():
-    # convert parts instance segmentation to each class of instance instruments dataset
+    # convert CVAT 1.1 box annotation to each class of instance instruments dataset
     # SurgToolLoc(EndoVis2023) -> COCO format Instance segmentation
-    parent_dir = Path("/data1/shared/miccai/EndoVis2023/SurgToolLoc/v1.1")
-    annotation_csv = Path("/data2/src/atsushi/SurgToolLoc/result/cls_labels/cls_labels_modify.csv")
+    parent_dir = Path("/data1/shared/miccai/EndoVis2023/SurgToolLoc/v1.3")
+    annotation_parent_dir = Path(
+        "/data2/src/atsushi/JmeesBrain/projects/Annotation/data/cvat/annotations/xml/miccai2023-box"
+    )
     child_dir_ptn = "*_clip_*"
     seg_dir_name = "mask"
-    save_file = "coco_box_13classes.json"
+    save_file = "coco_large_box_13classes_anno.json"
 
     # semantic mask to instance id
     cmap = {
@@ -39,6 +41,7 @@ def main():
         "clip_applier": [2, 5, 8, 11],  # wrist
         "force_bipolar": [2, 5, 8, 11],  # wrist
         "grasping_retractor": [1, 4, 7, 10],  # clasper
+        # "monopolar_curved_scissors": [1, 4, 7, 10, 3, 6, 9, 12],  # clasper and shaft
         "monopolar_curved_scissors": [1, 4, 7, 10],  # clasper
         "needle_driver": [2, 5, 8, 11],  # wrist
         "permanent_cautery_hook_spatula": [2, 5, 8, 11],  # wrist
@@ -69,23 +72,96 @@ def main():
     ]
 
     # taskごとにcoco.jsonを作成する
-    df = pl.read_csv(annotation_csv)
-    for video_dir in parent_dir.glob(child_dir_ptn):
-        if not video_dir.is_dir():
-            print(f"{video_dir} is not a directory")
+    for task_dir in parent_dir.glob(child_dir_ptn):
+        if not task_dir.is_dir():
+            print(f"{task_dir} is not a directory")
             continue
 
-        task_name = "_".join(video_dir.name.split("_")[1:])
-        df_cls_annotations = df.filter(pl.col("task_dirname") == task_name).select(
-            ["filename", "instance_id", "bbox", "label"]
-        )
+        task_name = "_".join(task_dir.name.split("_")[1:])
+        if task_name not in [
+            "clip_000000-000299",
+            "clip_000300-000599",
+            "clip_000600-000899",
+            "clip_000900-001199",
+            "clip_001200-001499",
+            "clip_001500-001799",
+            "clip_001800-002099",
+            "clip_002100-002399",
+            "clip_002400-002699",
+            "clip_002700-002999",
+            "clip_003000-003300",
+            "clip_003301-003600",
+            "clip_003601-003901",
+            "clip_003902-004201",
+            "clip_004202-004501",
+            "clip_004502-004802",
+            "clip_004803-005102",
+            "clip_005103-005402",
+            "clip_005403-005703",
+            "clip_005704-006003",
+            "clip_006004-006303",
+            "clip_006304-006604",
+            "clip_006605-006904",
+            "clip_006905-007204",
+            "clip_007205-007504",
+            "clip_007505-007804",
+            "clip_007805-008105",
+            "clip_008106-008405",
+            "clip_008406-008705",
+            "clip_008706-009006",
+            "clip_009007-009307",
+            "clip_009308-009608",
+            # "clip_009609-009908",
+            # "clip_009909-010209",
+            # "clip_010210-010510",
+            # "clip_010511-010810",
+            # "clip_010811-011110",
+            # "clip_011111-011410",
+            # "clip_011411-011710",
+            # "clip_024025-024325",
+            "clip_024326-024625",
+            "clip_024626-024720",
+        ]:
+            continue
+
+        annotation_xml = next(annotation_parent_dir.glob(f"*{task_name}*.xml"))
+        if annotation_xml is None:
+            print(f"Annotation file of {task_name} is not found in {annotation_parent_dir}")
+            continue
+        annotation_dict = read_cvat_xml(annotation_xml)
+
         coco_dataset = create_coco_format(
-            video_dir / seg_dir_name, cmap, categories, df_cls_annotations, clasper_or_wrist
+            task_dir / seg_dir_name, cmap, categories, annotation_dict, clasper_or_wrist
         )
-        save_annotation(coco_dataset, video_dir / save_file)
+        save_annotation(coco_dataset, task_dir / save_file)
 
 
-def create_coco_format(mask_parent_dir, cmap, categories, df_cls_annotations, clasper_or_wrist):
+def read_cvat_xml(annotation_xml):
+    annotations = {}
+
+    tree = etree.parse(annotation_xml)
+    root = tree.getroot()
+    for image_tag in root.findall("image"):
+        image_name = image_tag.attrib["name"]
+        anno = []
+        for box_tag in image_tag.findall("box"):
+            label = box_tag.attrib["label"]
+            bbox = _get_bbox_from_tag(box_tag)
+            anno.append({"label": label, "bbox": bbox})
+        annotations[image_name] = anno
+    return annotations
+
+
+def _get_bbox_from_tag(box_tag):
+    x1 = float(box_tag.attrib["xtl"])
+    y1 = float(box_tag.attrib["ytl"])
+    x2 = float(box_tag.attrib["xbr"])
+    y2 = float(box_tag.attrib["ybr"])
+    # return x, y, w, h
+    return np.array([x1, y1, x2 - x1, y2 - y1], dtype=int)
+
+
+def create_coco_format(mask_parent_dir, cmap, categories, annotation_dict, clasper_or_wrist):
     coco_dataset = {
         "images": [],
         "annotations": [],
@@ -109,37 +185,38 @@ def create_coco_format(mask_parent_dir, cmap, categories, df_cls_annotations, cl
                 "height": height,
             }
             coco_dataset["images"].append(image_info)
+
             # annotation info
             pbar.set_description(mask_parent_dir.parent.name)
             instance_masks = index_remap(panoptic_mask, cmap)
             instance_uniques = np.unique(instance_masks)[1:]  # ignore background
             # label of instances
-            anno = df_cls_annotations.filter(pl.col("filename") == label_file.name).to_dicts()
+            anno = annotation_dict[label_file.name]
             if len(anno) == 0:
                 print("No labels")
                 continue
             # instance_masksからinstanceを取り出す
             for _id in instance_uniques:
                 instance_mask = get_target_mask(instance_masks, _id)
-                bbox = mask2bbox(instance_mask)
+                instrument_whole_bbox = mask2bbox(instance_mask)
 
                 # determine which label is targeted
-                label = rename_label(
-                    anno[
-                        np.argmax(
-                            [
-                                calc_bbox_iou(parse_bbox(anno_instance["bbox"], xyxy=False), bbox)
-                                for anno_instance in anno
-                            ]
-                        )
-                    ]["label"]
+                target_instance_idx = np.argmax(
+                    [
+                        calc_bbox_iou(anno_instance["bbox"], instrument_whole_bbox)
+                        for anno_instance in anno
+                    ]
                 )
+                label = anno[target_instance_idx]["label"]
                 label_id = get_label_id(categories, label)
+                bbox = anno[target_instance_idx]["bbox"]
 
                 # 先端か手首にbboxを絞る
                 target_indexes = clasper_or_wrist[label]
                 target_mask = (
-                    instance_mask.astype(bool) & np.isin(panoptic_mask, target_indexes)
+                    instance_mask.astype(bool)
+                    & np.isin(panoptic_mask, target_indexes)
+                    & generate_box_mask(bbox, (width, height)).astype(bool)
                 ).astype(np.uint8)
                 area = calc_mask_area(target_mask)
                 # 術具が写っていない場合真っ黒
@@ -148,7 +225,7 @@ def create_coco_format(mask_parent_dir, cmap, categories, df_cls_annotations, cl
                         "id": instance_id,
                         "image_id": image_id,
                         "category_id": label_id,
-                        "bbox": mask2bbox(target_mask),
+                        "bbox": instrument_whole_bbox,
                         "segmentation": [
                             contour.flatten().tolist() for contour in mask2contours(target_mask)
                         ],
@@ -190,19 +267,16 @@ def mask2contours(mask):
     return [contour[:, 0] for contour in contours]
 
 
+def generate_box_mask(bbox, img_size):
+    img_w, img_h = img_size
+    x, y, w, h = bbox
+    box_mask = np.zeros((img_h, img_w))
+    box_mask[y : y + h, x : x + w] = 1
+    return box_mask
+
+
 def calc_mask_area(mask):
     return int(np.sum(mask > 0))
-
-
-def rename_label(name):
-    space = name[-1]
-    name = name.replace(" ", "_").replace("/", "_").replace("-", "_")
-    return name[:-1] if space == " " else name
-
-
-def parse_bbox(bbox_str, xyxy=True):
-    x1, y1, x2, y2 = tuple(map(int, bbox_str.split(",")))
-    return [x1, y1, x2, y2] if xyxy else [x1, y1, x2 - x1, y2 - y1]
 
 
 def calc_bbox_iou(pred, gt):

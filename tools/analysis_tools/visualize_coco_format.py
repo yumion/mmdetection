@@ -24,7 +24,12 @@ def parser_args():
         type=Path,
         help="Path to the directory for saving output images.",
     )
-    parser.add_argument("--img-ids", nargs="+", type=int, help="Image IDs to visualize.")
+    parser.add_argument(
+        "--img-ids",
+        nargs="+",
+        type=int,
+        help="Image IDs to visualize.",
+    )
     parser.add_argument(
         "--annotation",
         type=str,
