@@ -1,4 +1,5 @@
 cityscapesscripts
+fairscale
 imagecorruptions
 scikit-learn
 seaborn
