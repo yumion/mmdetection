@@ -4,3 +4,5 @@ fairscale
 imagecorruptions
 scikit-learn
 seaborn
+wandb
+timm
