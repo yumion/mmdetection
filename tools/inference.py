@@ -50,7 +50,7 @@ def parse_args():
     return args
 
 
-def main():
+def main() -> None:
     args = parse_args()
     assert (
         args.show_dir is not None or args.out is not None

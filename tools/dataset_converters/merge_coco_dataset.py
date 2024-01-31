@@ -43,12 +43,16 @@ def update_coco_dataset(
         images, annotations, categories = read_coco_dataset(dataset_path)
         # update image_id and annotation_id
         for image in images:
+            original_image_id = image["id"]
             image["id"] = image_id
+            for annotation in annotations:
+                # find annotation_id corresponding original image_id
+                if annotation["image_id"] != original_image_id:
+                    continue
+                annotation["image_id"] = image_id
+                annotation["id"] = annotation_id
+                annotation_id += 1
             image_id += 1
-        for annotation in annotations:
-            annotation["image_id"] = image_id
-            annotation["id"] = annotation_id
-            annotation_id += 1
         # copy dataset to merge
         new_dataset["images"].extend(images)
         new_dataset["annotations"].extend(annotations)

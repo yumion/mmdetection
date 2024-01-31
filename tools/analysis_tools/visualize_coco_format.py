@@ -12,7 +12,7 @@ from pycocotools.mask import decode
 from tqdm import tqdm
 
 
-def parser_args():
+def parser_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Visualize COCO annotations.")
     parser.add_argument(
         "data_root",
@@ -50,7 +50,7 @@ def parser_args():
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
     args = parser_args()
 
     annotation_file = args.data_root / args.annotation
@@ -93,13 +93,13 @@ class CocoVisualizer:
 
         for idx, ann in enumerate(anns):
             color = self.colors[idx % len(self.colors)]
-            polygons = ann["segmentation"]
+            # polygons = ann["segmentation"]
             label_name = self.coco.loadCats(ann["category_id"])[0]["name"]
 
-            # polygon
-            for polygon in polygons:
-                poly = np.array(polygon).reshape((len(polygon) // 2, 2))
-                plt.plot(poly[:, 0], poly[:, 1], color=color, linewidth=4)
+            # # polygon
+            # for polygon in polygons:
+            #     poly = np.array(polygon).reshape((len(polygon) // 2, 2))
+            #     plt.plot(poly[:, 0], poly[:, 1], color=color, linewidth=4)
 
             # mask
             # annToRLEのデバッグ用
