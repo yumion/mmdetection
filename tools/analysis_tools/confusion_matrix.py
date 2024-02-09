@@ -30,6 +30,10 @@ def parse_args():
         default='plasma',
         help='theme of the matrix color map')
     parser.add_argument(
+        '--font-color',
+        default='w',
+        help='font color of text of the confusion matrix value')
+    parser.add_argument(
         '--score-thr',
         type=float,
         default=0.3,
@@ -155,7 +159,8 @@ def plot_confusion_matrix(confusion_matrix,
                           save_dir=None,
                           show=True,
                           title='Normalized Confusion Matrix',
-                          color_theme='plasma'):
+                          color_theme='plasma',
+                          font_color='w'):
     """Draw confusion matrix with matplotlib.
 
     Args:
@@ -174,7 +179,7 @@ def plot_confusion_matrix(confusion_matrix,
 
     num_classes = len(labels)
     fig, ax = plt.subplots(
-        figsize=(0.5 * num_classes, 0.5 * num_classes * 0.8), dpi=180)
+        figsize=(1.2 * num_classes, 1.2 * num_classes * 0.8), dpi=180)
     cmap = plt.get_cmap(color_theme)
     im = ax.imshow(confusion_matrix, cmap=cmap)
     plt.colorbar(mappable=im, ax=ax)
@@ -215,18 +220,19 @@ def plot_confusion_matrix(confusion_matrix,
             ax.text(
                 j,
                 i,
-                '{}%'.format(
-                    int(confusion_matrix[
+                '{:.1f}%'.format(
+                    confusion_matrix[
                         i,
-                        j]) if not np.isnan(confusion_matrix[i, j]) else -1),
+                        j] if not np.isnan(confusion_matrix[i, j]) else -1),
                 ha='center',
                 va='center',
-                color='w',
+                color=font_color,
                 size=7)
 
     ax.set_ylim(len(confusion_matrix) - 0.5, -0.5)  # matplotlib>3.1.1
 
     fig.tight_layout()
+    plt.subplots_adjust()
     if save_dir is not None:
         plt.savefig(
             os.path.join(save_dir, 'confusion_matrix.png'), format='png')
@@ -261,12 +267,15 @@ def main():
                                                   args.score_thr,
                                                   args.nms_iou_thr,
                                                   args.tp_iou_thr)
+    print("Confusion matrix(x:prediction, y:groundtruth)")
+    print(confusion_matrix.astype(int))
     plot_confusion_matrix(
         confusion_matrix,
         dataset.metainfo['classes'] + ('background', ),
         save_dir=args.save_dir,
         show=args.show,
-        color_theme=args.color_theme)
+        color_theme=args.color_theme,
+        font_color=args.font_color)
 
 
 if __name__ == '__main__':
