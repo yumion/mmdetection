@@ -109,6 +109,8 @@ def copy_images(
             image_path = dataset_path.parent / image_prefix / image["file_name"]
             out_image_path = out_images_dir / image["file_name"]
             if is_symlink:
+                if out_image_path.exists():
+                    out_image_path.unlink()
                 out_image_path.symlink_to(image_path)
             else:
                 out_image_path.write_bytes(image_path.read_bytes())
