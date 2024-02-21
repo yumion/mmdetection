@@ -7,8 +7,17 @@ from typing import Dict, List, Optional, Tuple, Union
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Merge multiple COCO format datasets")
     parser.add_argument("datasets", nargs="+", type=str, help="datasets to be merged")
-    parser.add_argument("--data-root", "--data_root", type=Path, help="root path of datasets")
     parser.add_argument("--out", type=Path, required=True, help="output path")
+    parser.add_argument("--data-root", "--data_root", type=Path, help="root path of datasets")
+    parser.add_argument(
+        "--include-images", "--include_images", action="store_true", help="include images"
+    )
+    parser.add_argument(
+        "--image-prefix", "--image_prefix", type=str, default="images", help="image prefix"
+    )
+    parser.add_argument(
+        "--symlink", action="store_true", help="create symlink instead of copying images"
+    )
     args = parser.parse_args()
     return args
 
@@ -17,6 +26,8 @@ def main() -> None:
     args = parse_args()
     new_dataset = update_coco_dataset(args.datasets, args.data_root)
     write_coco_dataset(new_dataset, args.out)
+    if args.include_images:
+        copy_images(args.datasets, args.out, args.data_root, args.image_prefix, args.symlink)
 
 
 def read_coco_dataset(
@@ -61,7 +72,7 @@ def update_coco_dataset(
     return new_dataset
 
 
-def write_coco_dataset(new_dataset: Dict[str, List[dict]], out_path: str) -> None:
+def write_coco_dataset(new_dataset: Dict[str, List[dict]], out_path: Path) -> None:
     assert str(out_path).endswith(".json"), "output path must be json file"
 
     assert (
@@ -76,8 +87,31 @@ def write_coco_dataset(new_dataset: Dict[str, List[dict]], out_path: str) -> Non
         and len(new_dataset["categories"]) > 0
     ), "COCO dataset must have at least one image and annotation"
 
-    with open(out_path, "w") as fw:
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with out_path.open("w") as fw:
         json.dump(new_dataset, fw, indent=4, ensure_ascii=False)
+
+
+def copy_images(
+    datasets: List[Union[str, Path]],
+    out_path: Path,
+    data_root: Optional[Path] = None,
+    image_prefix: str = "images",
+    is_symlink: bool = False,
+) -> None:
+    out_images_dir = out_path.parent / image_prefix
+    out_images_dir.mkdir(exist_ok=True, parents=True)
+    for dataset_path in datasets:
+        if data_root is not None:
+            dataset_path = data_root / dataset_path
+        images, _, _ = read_coco_dataset(dataset_path)
+        for image in images:
+            image_path = dataset_path.parent / image_prefix / image["file_name"]
+            out_image_path = out_images_dir / image["file_name"]
+            if is_symlink:
+                out_image_path.symlink_to(image_path)
+            else:
+                out_image_path.write_bytes(image_path.read_bytes())
 
 
 if __name__ == "__main__":
